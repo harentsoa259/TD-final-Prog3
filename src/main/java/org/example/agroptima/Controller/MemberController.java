@@ -31,6 +31,7 @@ public class MemberController {
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
                 }
 
+                
                 Member savedMember = memberRepository.save(dto);
                 if (savedMember != null) {
                     createdMembers.add(savedMember);
