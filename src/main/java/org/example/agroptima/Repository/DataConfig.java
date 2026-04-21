@@ -5,6 +5,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
 
 @Configuration
 public class DataConfig {
@@ -18,11 +20,15 @@ public class DataConfig {
         String password = System.getenv("DB_PASSWORD");
 
         dataSource.setDriverClassName("org.postgresql.Driver");
-
         dataSource.setUrl(url != null ? url : "jdbc:postgresql://localhost:5432/agroptima");
         dataSource.setUsername(user != null ? user : "user123");
         dataSource.setPassword(password != null ? password : "123456");
 
         return dataSource;
+    }
+
+    @Bean
+    public Connection connection(DataSource dataSource) throws SQLException {
+        return dataSource.getConnection();
     }
 }
