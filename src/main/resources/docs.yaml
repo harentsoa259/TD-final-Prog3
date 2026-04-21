@@ -1,0 +1,245 @@
+openapi: 3.0.3
+info:
+  title: API Fédération de Collectivités Agricoles de Madagascar
+  description: API pour la digitalisation des processus administratifs, financiers et statistiques de la fédération.
+  version: 1.0.0
+  contact:
+    name: Support Technique HEI - Promotion K
+servers:
+  - url: http://api.federation-agri.mg/v1
+    description: Serveur de production
+
+tags:
+  - name: Collectivités
+    description: Gestion des ouvertures et listes des collectivités
+  - name: Membres
+    description: Inscriptions, transferts et démissions
+  - name: Gouvernance
+    description: Élections et mandats (Collectivités & Fédération)
+  - name: Trésorerie
+    description: Gestion des comptes, cotisations et soldes (MGA)
+  - name: Activités
+    description: Planning et feuilles de présence
+  - name: Statistiques
+    description: Rapports mensuels et bilans d'assiduité
+
+paths:
+  # --- SECTION A & B : COLLECTIVITÉS & MEMBRES ---
+  /collectivites:
+    post:
+      tags: [Collectivités]
+      summary: Ouverture d'une nouvelle collectivité
+      description: Nécessite 10 membres avec 6 mois d'antériorité.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectiviteCreate'
+      responses:
+        '201':
+          description: Collectivité créée
+        '403':
+          description: Conditions d'ouverture non remplies (membres insuffisants)
+
+    get:
+      tags: [Collectivités]
+      summary: Liste des collectivités
+      parameters:
+        - name: ville
+          in: query
+          schema: { type: string }
+        - name: specialite
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Liste retournée
+
+  /collectivites/{id}/membres:
+    post:
+      tags: [Membres]
+      summary: Admission d'un nouveau membre
+      description: Vérifie le parrain (90j) et les frais de 50.000 MGA.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MembreAdmission'
+      responses:
+        '201':
+          description: Membre admis
+
+  /membres/{id}/transfert:
+    patch:
+      tags: [Membres]
+      summary: Transférer un membre
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nouvelleCollectiviteId: { type: integer }
+                motif: { type: string }
+      responses:
+        '200':
+          description: Transfert effectué
+
+  # --- SECTION C & D : TRÉSORERIE ---
+  /collectivites/{id}/comptes:
+    post:
+      tags: [Trésorerie]
+      summary: Ajouter un compte bancaire, mobile money ou caisse
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompteFinancier'
+      responses:
+        '201':
+          description: Compte créé
+
+  /cotisations:
+    post:
+      tags: [Trésorerie]
+      summary: Enregistrer une cotisation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Cotisation'
+      responses:
+        '201':
+          description: Paiement enregistré
+
+  # --- SECTION E & F : ACTIVITÉS & PRÉSENCES ---
+  /activites:
+    post:
+      tags: [Activités]
+      summary: Créer une activité (AG, Formation)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Activite'
+      responses:
+        '201':
+          description: Activité planifiée
+
+  /activites/{id}/presences:
+    post:
+      tags: [Activités]
+      summary: Saisie de la feuille d'émargement
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/PresenceRecord'
+      responses:
+        '200':
+          description: Présences enregistrées
+
+  # --- SECTION G : STATISTIQUES ---
+  /stats/collectivites/{id}/rapport-mensuel:
+    get:
+      tags: [Statistiques]
+      summary: Rapport d'assiduité global pour la fédération
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Données de rapport
+
+components:
+  schemas:
+    MembreAdmission:
+      type: object
+      required: [nom, prenoms, genre, parrainId]
+      properties:
+        nom: { type: string }
+        prenoms: { type: string }
+        dateNaissance: { type: string, format: date }
+        genre: { type: string, enum: [Masculin, Féminin] }
+        telephone: { type: string }
+        email: { type: string, format: email }
+        parrainId: { type: integer, description: "ID du membre parrain (> 90j)" }
+        fraisAdhesion: { type: integer, default: 50000, description: "En MGA" }
+
+    CompteFinancier:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string, enum: [CAISSE, BANQUE, MOBILE_MONEY] }
+        titulaire: { type: string }
+        banqueNom: { type: string, enum: [BRED, MCB, BMOI, BOA, BGFI, AFG, ACCÈS BANQUE, BAOBAB, SIPEM] }
+        numeroRIB:
+          type: string
+          pattern: '^[0-9]{23}$'
+          description: "BBBBB-GGGGG-CCCCCCCCCCC-KK"
+        serviceMobile: { type: string, enum: [Orange Money, Mvola, Airtel Money] }
+
+    Cotisation:
+      type: object
+      properties:
+        membreId: { type: integer }
+        montant: { type: integer }
+        date: { type: string, format: date }
+        type: { type: string, enum: [MENSUELLE, ANNUELLE, PONCTUELLE] }
+        modePaiement: { type: string, enum: [ESPECE, VIREMENT, MOBILE_MONEY] }
+
+    Activite:
+      type: object
+      properties:
+        nom: { type: string }
+        date: { type: string, format: date }
+        type: { type: string, enum: [AG_MENSUELLE, FORMATION_JUNIOR, EXCEPTIONNELLE] }
+        estObligatoire: { type: boolean }
+        cible: { type: string, example: "JUNIORS" }
+
+    PresenceRecord:
+      type: object
+      properties:
+        membreId: { type: integer }
+        statut: { type: string, enum: [PRESENT, ABSENT, EXCUSE] }
+        motif: { type: string }
+
+    CollectiviteCreate:
+      type: object
+      required: [nom, numero, ville, specialite, membresFondateursIds]
+      properties:
+        nom: { type: string }
+        numero: { type: string }
+        ville: { type: string }
+        specialite: { type: string }
+        autorisationFederation: { type: boolean }
+        membresFondateursIds:
+          type: array
+          items: { type: integer }
+          minItems: 10
