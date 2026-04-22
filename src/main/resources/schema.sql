@@ -64,3 +64,42 @@ CREATE TABLE member_referees (
 ALTER TABLE collectivity
     ADD COLUMN name VARCHAR(255) UNIQUE,
 ADD COLUMN number VARCHAR(50) UNIQUE;
+
+-- --------------------------------------------FONCTIONNALITE C ET D_____________________________
+
+CREATE TYPE frequency AS ENUM ('WEEKLY', 'MONTHLY', 'ANNUALLY', 'PUNCTUALLY');
+CREATE TYPE payment_mode AS ENUM ('CASH', 'MOBILE_BANKING', 'BANK_TRANSFER');
+
+-- Types de frais de cotisation
+CREATE TABLE membership_fee (
+                                id SERIAL PRIMARY KEY,
+                                collectivity_id INT REFERENCES collectivity(id),
+                                eligible_from DATE NOT NULL,
+                                frequency frequency NOT NULL,
+                                amount DECIMAL NOT NULL,
+                                label VARCHAR(255),
+                                status VARCHAR(20) DEFAULT 'ACTIVE'
+);
+
+-- Comptes financiers (Table unique pour simplifier le JDBC)
+CREATE TABLE financial_account (
+                                   id SERIAL PRIMARY KEY,
+                                   type VARCHAR(50), -- CASH, MOBILE, BANK
+                                   amount DECIMAL DEFAULT 0,
+                                   holder_name VARCHAR(255),
+                                   mobile_service VARCHAR(50),
+                                   mobile_number VARCHAR(20),
+                                   bank_name VARCHAR(50),
+                                   bank_account_number VARCHAR(50)
+);
+
+-- Paiements et Transactions
+CREATE TABLE member_payment (
+                                id SERIAL PRIMARY KEY,
+                                member_id INT REFERENCES member(id),
+                                fee_id INT REFERENCES membership_fee(id),
+                                account_id INT REFERENCES financial_account(id),
+                                amount DECIMAL NOT NULL,
+                                payment_mode payment_mode NOT NULL,
+                                creation_date DATE DEFAULT CURRENT_DATE
+);
