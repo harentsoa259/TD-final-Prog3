@@ -59,3 +59,8 @@ CREATE TABLE member_referees (
                                  relationship_type VARCHAR(100), -- ex: 'famille', 'amis', 'collègues'
                                  PRIMARY KEY (member_id, referee_id)
 );
+
+--7
+ALTER TABLE collectivity
+    ADD COLUMN name VARCHAR(255) UNIQUE,
+ADD COLUMN number VARCHAR(50) UNIQUE;

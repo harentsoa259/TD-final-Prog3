@@ -6,6 +6,8 @@ import java.util.List;
 
 public class Collectivity {
     private String id;
+    private String name;
+    private String number;
     private String location;
     private CollectivityStructure structure;
     private List<Member> members;
@@ -13,9 +15,10 @@ public class Collectivity {
     public Collectivity(){
 
     }
-
-    public Collectivity(String id, String location, CollectivityStructure structure, List<Member> members) {
+    public Collectivity(String id, String name, String number, String location, CollectivityStructure structure, List<Member> members) {
         this.id = id;
+        this.name = name;
+        this.number = number;
         this.location = location;
         this.structure = structure;
         this.members = members;
@@ -27,6 +30,22 @@ public class Collectivity {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getNumber() {
+        return number;
+    }
+
+    public void setNumber(String number) {
+        this.number = number;
     }
 
     public String getLocation() {
@@ -57,10 +76,13 @@ public class Collectivity {
     public String toString() {
         return "Collectivity{" +
                 "id='" + id + '\'' +
+                ", name='" + name + '\'' +
+                ", number='" + number + '\'' +
                 ", location='" + location + '\'' +
                 ", structure=" + structure +
                 ", members=" + members +
                 '}';
     }
+
 
 }

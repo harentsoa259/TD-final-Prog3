@@ -51,3 +51,4 @@ VALUES ('Finoana', 'Rivo', '1992-02-14', 'FEMALE', 'Fianarantsoa', 'Agronome', 3
 
 INSERT INTO member (first_name, last_name, birth_date, gender, phone_number, membership_date, occupation, registration_fee_paid, membership_dues_paid, collectivity_id)
 VALUES ('Harentsoa', 'Software', '2000-05-15', 'MALE', 341234567, '2026-04-21', 'JUNIOR', true, true, 1);
+

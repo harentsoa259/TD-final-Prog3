@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import org.springframework.web.bind.annotation.*;
 
+import java.sql.SQLException;
 import java.util.List;
 
 import org.springframework.web.bind.annotation.*;
@@ -49,4 +50,39 @@ public class CollectivityController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
     }
+
+
+    @PatchMapping("/{id}/identity")
+    public ResponseEntity<?> identifyCollectivity(
+            @PathVariable String id,
+            @RequestBody java.util.Map<String, String> body) {
+        try {
+            String name = body.get("name");
+            String number = body.get("number");
+
+            if (name == null || number == null) {
+                return ResponseEntity.badRequest().body("Le nom et le numéro sont obligatoires.");
+            }
+
+            if (collectivityRepository.isAlreadyIdentified(id)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body("Erreur 403 : Cette collectivité possède déjà une identité immuable.");
+            }
+
+            if (collectivityRepository.existsByNameOrNumber(name, number)) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body("Erreur 409 : Ce nom ou ce numéro est déjà utilisé.");
+            }
+
+            collectivityRepository.updateIdentity(id, name, number);
+
+            return ResponseEntity.ok("Identité attribuée avec succès.");
+
+        } catch (SQLException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body("ID de collectivité invalide.");
+        }
+    }
+
 }

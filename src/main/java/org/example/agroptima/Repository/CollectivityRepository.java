@@ -66,4 +66,41 @@ public class CollectivityRepository {
         }
         return false;
     }
+
+
+    public boolean isAlreadyIdentified(String id) throws SQLException {
+        String sql = "SELECT name, number FROM collectivity WHERE id = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, Integer.parseInt(id));
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getString("name") != null || rs.getString("number") != null;
+            }
+        }
+        return false;
+    }
+
+    public boolean existsByNameOrNumber(String name, String number) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM collectivity WHERE name = ? OR number = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, name);
+            pstmt.setString(2, number);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        }
+        return false;
+    }
+
+    public void updateIdentity(String id, String name, String number) throws SQLException {
+        String sql = "UPDATE collectivity SET name = ?, number = ? WHERE id = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, name);
+            pstmt.setString(2, number);
+            pstmt.setInt(3, Integer.parseInt(id));
+            pstmt.executeUpdate();
+        }
+    }
+
 }
