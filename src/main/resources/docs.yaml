@@ -1,207 +1,228 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
-  title: API Fédération de Collectivités Agricoles de Madagascar
-  description: >
-    API pour la digitalisation des processus administratifs, financiers et statistiques. 
-    Mise à jour du 21 avril 2026 incluant le filtrage strict des membres et les stats fédérales.
-  version: 1.1.0
-  contact:
-    name: Harentsoa - Promotion K (HEI)
-
+  title: Agricultural federation API
+  description: |
+    # Versioning
+    - v0.0.1 (2026-04-21) : POST /collectivities and POST /members creation.
+    - v0.0.2 (2026-04-22) : PATCH /collectivities/{id}/identity for unique name and number assignment (Feature J).
+  version: 0.0.2
 servers:
-  - url: http://api.federation-agri.mg/v1
-    description: Serveur de production
-
-tags:
-  - name: Collectivités
-    description: Gestion des entités locales
-  - name: Membres
-    description: Inscriptions et parrainages
-  - name: Trésorerie
-    description: Comptes et cotisations
-  - name: Activités
-    description: Planning et assiduité
-  - name: Statistiques
-    description: Rapports de performance
-
+  - url: 'https://localhost:8080'
 paths:
-  /collectivites:
+  '/collectivities':
     post:
-      tags: [Collectivités]
-      summary: Ouverture d'une nouvelle collectivité
+      summary: Create list of collectivities
+      description: |
+        Lors de la création, la collectivité n'a pas encore de nom ni de numéro officiel. 
+        Ceux-ci seront attribués plus tard par la fédération via le point d'entrée dédié.
       requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CollectiviteCreate'
-      responses:
-        '201':
-          description: Créée
-    get:
-      tags: [Collectivités]
-      summary: Liste des collectivités
-      responses:
-        '200':
-          description: OK
-
-  /collectivites/{id}/membres:
-    post:
-      tags: [Membres]
-      summary: Admission d'un nouveau membre (Mise à jour B-2)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: integer }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MembreAdmission'
-      responses:
-        '201':
-          description: Admis
-
-  /cotisations:
-    post:
-      tags: [Trésorerie]
-      summary: Enregistrer un versement
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Cotisation'
-      responses:
-        '201':
-          description: Enregistré
-
-  /activites:
-    post:
-      tags: [Activités]
-      summary: Planifier une activité
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Activite'
-      responses:
-        '201':
-          description: Planifiée
-
-  /activites/{id}/presences:
-    post:
-      tags: [Activités]
-      summary: Enregistrer la présence
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: integer }
-      requestBody:
-        required: true
         content:
           application/json:
             schema:
               type: array
               items:
-                $ref: '#/components/schemas/PresenceEntry'
+                $ref: '#/components/schemas/CreateCollectivity'
       responses:
-        '200':
-          description: Validé
-
-  /stats/federation/rapport-global:
-    get:
-      tags: [Statistiques]
-      summary: Rapport global Fédération (H)
-      parameters:
-        - name: debut
-          in: query
-          required: true
-          schema: { type: string, format: date }
-        - name: fin
-          in: query
-          required: true
-          schema: { type: string, format: date }
-      responses:
-        '200':
-          description: OK
+        201:
+          description: List of created collectivities
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/FederationStatReport'
+                  $ref: '#/components/schemas/Collectivity'
+        400:
+          description: Collectivity without federation approval or structure missing.
+        404:
+          description: Member not found.
+
+  # --- AJOUT FONCTIONNALITÉ J ---
+  '/collectivities/{id}/identity':
+    patch:
+      summary: Attribution du nom et numéro unique par la fédération
+      description: |
+        Permet à la fédération d'attribuer officiellement un nom et un numéro à une collectivité. 
+        RÈGLE MÉTIER : Une fois ces informations enregistrées, elles deviennent immuables. 
+        Toute tentative de modification ultérieure retournera une erreur.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, number]
+              properties:
+                name:
+                  type: string
+                  example: "Fédération Rizicole de l'Alaotra"
+                number:
+                  type: string
+                  example: "FED-MG-2026-042"
+      responses:
+        200:
+          description: Identité attribuée et verrouillée avec succès.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collectivity'
+        403:
+          description: Interdit - Le nom ou le numéro a déjà été attribué et ne peut plus être changé.
+        404:
+          description: Collectivité non trouvée.
+        409:
+          description: Conflit - Le nom ou le numéro est déjà utilisé par une autre collectivité.
+
+  '/members':
+    post:
+      summary: Create list of members
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/CreateMember'
+      responses:
+        201:
+          description: List of created members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Member'
+        400:
+          description: |
+            Cas d'erreur : 
+            - Parrainage invalide (moins de 2 parrains, ancienneté < 90j, etc.).
+            - Frais d'adhésion ou cotisations non payés.
+        404:
+          description: Collectivité ou membre parrain non trouvé.
 
 components:
   schemas:
-    CollectiviteCreate:
+    CreateCollectivity:
       type: object
-      required: [nom, numero, ville, specialite, membresFondateurs]
       properties:
-        nom: { type: string }
-        numero: { type: string }
-        ville: { type: string }
-        specialite: { type: string }
-        membresFondateurs:
+        location:
+          type: string
+        members:
           type: array
-          items: { type: integer }
-          minItems: 10
-
-    MembreAdmission:
-      type: object
-      required: [nom, prenom, parrainages, paiementInitial]
-      properties:
-        nom: { type: string }
-        prenom: { type: string }
-        parrainages:
-          type: array
-          minItems: 2
           items:
-            type: object
-            properties:
-              parrainId: { type: integer }
-              relation: { type: string }
-              collectiviteId: { type: integer }
-        paiementInitial:
-          type: object
-          properties:
-            fraisAdhesion: { type: number, example: 50000 }
-            cotisationAnnuelle: { type: number }
-
-    Cotisation:
-      type: object
-      required: [membreId, montant, type, modePaiement]
-      properties:
-        membreId: { type: integer }
-        montant: { type: number }
-        type: { type: string, enum: [MENSUELLE, ANNUELLE, PONCTUELLE] }
-        modePaiement: { type: string, enum: [ESPECE, VIREMENT, MOBILE_MONEY] }
-
-    Activite:
-      type: object
-      required: [nom, date, type]
-      properties:
-        nom: { type: string }
-        date: { type: string, format: date }
-        type: { type: string, enum: [AG_MENSUELLE, FORMATION_JUNIOR, EXCEPTIONNELLE] }
-        estObligatoire: { type: boolean }
-
-    PresenceEntry:
+            $ref: '#/components/schemas/MemberIdentifier'
+        federationApproval:
+          type: boolean
+        structure:
+          $ref: '#/components/schemas/CreateCollectivityStructure'
+    
+    CreateCollectivityStructure:
       type: object
       properties:
-        membreId: { type: integer }
-        statut: { type: string, enum: [PRESENT, ABSENT, EXCUSE] }
-        motif: { type: string }
-
-    FederationStatReport:
+        president:
+          $ref: '#/components/schemas/MemberIdentifier'
+        vicePresident:
+          $ref: '#/components/schemas/MemberIdentifier'
+        treasurer:
+          $ref: '#/components/schemas/MemberIdentifier'
+        secretary:
+          $ref: '#/components/schemas/MemberIdentifier'
+    
+    CollectivityStructure:
       type: object
       properties:
-        collectiviteId: { type: integer }
-        tauxAssiduiteGlobal: { type: number }
-        pourcentageAJour: { type: number }
-        nouveauxAdherents: { type: integer }
-
+        president:
+          $ref: '#/components/schemas/Member'
+        vicePresident:
+          $ref: '#/components/schemas/Member'
+        treasurer:
+          $ref: '#/components/schemas/Member'
+        secretary:
+          $ref: '#/components/schemas/Member'
+    
+    Collectivity:
+      type: object
+      properties:
+        id:
+          type: string
+        name: # Implémentation J
+          type: string
+          nullable: true
+        number: # Implémentation J
+          type: string
+          nullable: true
+        location:
+          type: string
+        structure:
+          $ref: '#/components/schemas/CollectivityStructure'
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/Member'
+    
+    MemberIdentifier:
+      type: string
+    
+    CreateMember:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/MemberInformation'
+      properties:
+        collectivityIdentifier:
+          type: string
+        referees:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemberIdentifier'
+        registrationFeePaid:
+          type: boolean
+        membershipDuesPaid:
+          type: boolean
+    
+    MemberInformation:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        birthDate:
+          type: string
+          format: date
+        gender:
+          $ref: '#/components/schemas/Gender'
+        address:
+          type: string
+        profession:
+          type: string
+        phoneNumber:
+          type: integer
+        email:
+          type: string
+        occupation:
+          $ref: '#/components/schemas/MemberOccupation'
+    
+    Member:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/MemberInformation'
+      properties:
+        id:
+          $ref: '#/components/schemas/MemberIdentifier'
+        referees:
+          type: array
+          items:
+            $ref: '#/components/schemas/Member'
+    
+    Gender:
+      type: string
+      enum: [MALE, FEMALE]
+    
+    MemberOccupation:
+      type: string
+      enum: [JUNIOR, SENIOR, SECRETARY, TREASURER, VICE_PRESIDENT, PRESIDENT]
