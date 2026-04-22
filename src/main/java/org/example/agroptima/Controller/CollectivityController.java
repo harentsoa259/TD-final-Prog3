@@ -52,36 +52,44 @@ public class CollectivityController {
     }
 
 
-    @PatchMapping("/{id}/identity")
+    @PutMapping("/{id}/informations")
     public ResponseEntity<?> identifyCollectivity(
             @PathVariable String id,
-            @RequestBody java.util.Map<String, String> body) {
+            @RequestBody java.util.Map<String, Object> body) {
         try {
-            String name = body.get("name");
-            String number = body.get("number");
+            String name = (String) body.get("name");
 
-            if (name == null || number == null) {
-                return ResponseEntity.badRequest().body("Le nom et le numéro sont obligatoires.");
+            Object numberObj = body.get("number");
+            if (name == null || numberObj == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Erreur 400 : Le nom et le numéro sont obligatoires.");
             }
 
+            String number = String.valueOf(numberObj);
+
             if (collectivityRepository.isAlreadyIdentified(id)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body("Erreur 403 : Cette collectivité possède déjà une identité immuable.");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Erreur 400 : Cette collectivité possède déjà une identité qui ne peut plus être changée.");
             }
 
             if (collectivityRepository.existsByNameOrNumber(name, number)) {
-                return ResponseEntity.status(HttpStatus.CONFLICT)
-                        .body("Erreur 409 : Ce nom ou ce numéro est déjà utilisé.");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Erreur 400 : Ce nom ou ce numéro est déjà utilisé par une autre collectivité.");
             }
 
             collectivityRepository.updateIdentity(id, name, number);
 
-            return ResponseEntity.ok("Identité attribuée avec succès.");
+            var updatedCollectivity = collectivityRepository.findById(id);
+            if (updatedCollectivity == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Collectivité non trouvée.");
+            }
+
+            return ResponseEntity.ok(updatedCollectivity);
 
         } catch (SQLException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
-        } catch (NumberFormatException e) {
-            return ResponseEntity.badRequest().body("ID de collectivité invalide.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erreur SQL : " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Données invalides.");
         }
     }
 

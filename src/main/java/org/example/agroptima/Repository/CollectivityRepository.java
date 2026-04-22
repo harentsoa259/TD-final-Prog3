@@ -1,6 +1,8 @@
 package org.example.agroptima.Repository;
 
 
+import org.example.agroptima.Modele.Collectivity.Collectivity;
+import org.example.agroptima.Modele.Collectivity.CollectivityStructure;
 import org.example.agroptima.Modele.Collectivity.CreateCollectivity;
 import org.springframework.stereotype.Repository;
 
@@ -103,4 +105,28 @@ public class CollectivityRepository {
         }
     }
 
+    public Collectivity findById(String id) throws SQLException {
+        String sql = "SELECT * FROM collectivity WHERE id = ?";
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, Integer.parseInt(id));
+
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    Collectivity c = new Collectivity();
+                    c.setId(String.valueOf(rs.getInt("id")));
+                    c.setName(rs.getString("name"));
+                    c.setNumber(rs.getString("number"));
+                    c.setLocation(rs.getString("location"));
+
+                    c.setStructure(new CollectivityStructure());
+                    c.setMembers(new java.util.ArrayList<>());
+
+
+                    return c;
+                }
+            }
+        }
+        return null;
+    }
 }
