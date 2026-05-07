@@ -1,4 +1,4 @@
-package com.Prog3.agroptima.entity.dto;
+package com.Prog3.agroptima.entity;
 
 import com.Prog3.agroptima.entity.enums.MobileBankingService;
 import lombok.AllArgsConstructor;
@@ -10,11 +10,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MobileBankingAccountDetail {
+public class MoneyMobileAccount {
     private String id;
-    private String type = "MOBILE_BANKING";
-    private Double amount;
+    private Account account;
     private String holderName;
-    private MobileBankingService mobileBankingService;
-    private String mobileNumber;
+    private MobileBankingService serviceName;
+    private String phoneNumber;
 }

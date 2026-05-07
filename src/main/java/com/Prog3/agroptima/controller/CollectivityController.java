@@ -23,7 +23,7 @@ public class CollectivityController {
     private final StatisticsService statisticsService;
     private final ActivityService activityService;
 
- 
+    // Endpoints
 
     @PostMapping
     public ResponseEntity<?> createCollectivities(@RequestBody(required = false) List<CreateCollectivity> createCollectivities) {

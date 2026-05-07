@@ -15,9 +15,9 @@ public class Datasource {
     public Connection getConnection() {
         Dotenv dotenv = Dotenv.load();
 
-       
+        // Vérifie bien que ces noms correspondent à ton fichier .env
         String dbUrl = dotenv.get("DB_URL");
-        String dbUser = dotenv.get("DB_USERNAME"); 
+        String dbUser = dotenv.get("DB_USER");
         String dbPassword = dotenv.get("DB_PASSWORD");
 
         try {
