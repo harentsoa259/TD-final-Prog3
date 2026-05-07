@@ -5,14 +5,16 @@ import com.Prog3.agroptima.entity.ActivityAttendance;
 import com.Prog3.agroptima.entity.Member;
 import com.Prog3.agroptima.entity.dto.*;
 import com.Prog3.agroptima.entity.enums.MemberOccupation;
-import com.Prog3.agroptima.exception.BadRequestException;
+
 import com.Prog3.agroptima.exception.NotFoundException;
 import com.Prog3.agroptima.mapper.Mapper;
 import com.Prog3.agroptima.repository.ActivityRepository;
 import com.Prog3.agroptima.repository.CollectivityRepository;
 import com.Prog3.agroptima.repository.MemberRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +31,7 @@ public class ActivityService {
     public List<CollectivityActivity> createActivities(String collectivityId, List<CreateCollectivityActivity> createActivities) {
         // Verify collectivity exists
         if (collectivityRepository.findById(collectivityId) == null) {
-            throw new NotFoundException("Collectivity not found with id: " + collectivityId);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Collectivity not found with id: " + collectivityId);
         }
 
         List<CollectivityActivity> responses = new ArrayList<>();
@@ -37,12 +39,12 @@ public class ActivityService {
         for (CreateCollectivityActivity createDto : createActivities) {
             // Validate: cannot have both recurrence rule and executive date
             if (createDto.getRecurrenceRule() != null && createDto.getExecutiveDate() != null) {
-                throw new BadRequestException("Cannot provide both recurrence rule and executive date");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot provide both recurrence rule and executive date");
             }
 
             // Validate: must have either recurrence rule or executive date
             if (createDto.getRecurrenceRule() == null && createDto.getExecutiveDate() == null) {
-                throw new BadRequestException("Must provide either recurrence rule or executive date");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Must provide either recurrence rule or executive date");
             }
 
             Activity activity = Activity.builder()
@@ -83,7 +85,7 @@ public class ActivityService {
 
     public List<CollectivityActivity> getActivities(String collectivityId) {
         if (collectivityRepository.findById(collectivityId) == null) {
-            throw new NotFoundException("Collectivity not found with id: " + collectivityId);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Collectivity not found with id: " + collectivityId);
         }
 
         List<Activity> activities = activityRepository.findByCollectivityId(collectivityId);
@@ -96,13 +98,13 @@ public class ActivityService {
                                                            List<CreateActivityMemberAttendance> attendances) {
         // Verify collectivity exists
         if (collectivityRepository.findById(collectivityId) == null) {
-            throw new NotFoundException("Collectivity not found with id: " + collectivityId);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Collectivity not found with id: " + collectivityId);
         }
 
         // Verify activity exists
         Activity activity = activityRepository.findById(activityId);
         if (activity == null) {
-            throw new NotFoundException("Activity not found with id: " + activityId);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Activity not found with id: " + activityId);
         }
 
         // Convert to entity list
@@ -110,7 +112,7 @@ public class ActivityService {
         for (CreateActivityMemberAttendance dto : attendances) {
             // Verify member exists
             memberRepository.findById(dto.getMemberIdentifier())
-                    .orElseThrow(() -> new NotFoundException("Member not found with id: " + dto.getMemberIdentifier()));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Member not found with id: " + dto.getMemberIdentifier()));
 
             ActivityAttendance attendance = ActivityAttendance.builder()
                     .activityId(activityId)
@@ -121,7 +123,12 @@ public class ActivityService {
         }
 
         // Save attendance (will throw error if already confirmed)
-        List<ActivityAttendance> savedAttendances = activityRepository.saveAttendance(activityId, attendanceEntities);
+        List<ActivityAttendance> savedAttendances;
+        try {
+            savedAttendances = activityRepository.saveAttendance(activityId, attendanceEntities);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "error : " + e);
+        }
 
         return savedAttendances.stream()
                 .map(this::mapToAttendanceResponse)
@@ -131,7 +138,7 @@ public class ActivityService {
     public List<ActivityMemberAttendance> getAttendance(String collectivityId, String activityId) {
         // Verify collectivity exists
         if (collectivityRepository.findById(collectivityId) == null) {
-            throw new NotFoundException("Collectivity not found with id: " + collectivityId);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Collectivity not found with id: " + collectivityId);
         }
 
         // Verify activity exists
