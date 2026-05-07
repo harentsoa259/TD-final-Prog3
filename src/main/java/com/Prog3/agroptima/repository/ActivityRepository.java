@@ -206,7 +206,7 @@ public class ActivityRepository {
             } catch (SQLException rollbackEx) {
                 throw new RuntimeException("Failed to rollback attendance save", rollbackEx);
             }
-            throw new RuntimeException("Failed to save attendance", e);
+            throw new RuntimeException("Failed to save attendance " + e.getMessage(), e);
         } finally {
             try {
                 connection.setAutoCommit(true);
@@ -251,7 +251,7 @@ public class ActivityRepository {
                         .lastName(rs.getString("last_name"))
                         .email(rs.getString("email"))
                         .gender(Gender.valueOf(rs.getString("gender")))
-                        .phoneNumber(rs.getInt("phone_number"))
+                        .phoneNumber(rs.getString("phone_number"))
                         .build();
 
                 ActivityAttendance attendance = ActivityAttendance.builder()
