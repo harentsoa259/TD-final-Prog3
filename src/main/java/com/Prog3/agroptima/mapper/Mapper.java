@@ -97,12 +97,19 @@ public class Mapper {
 
         } else if (account.getMobileMoneyAccount() != null) {
             MobileMoneyAccount ma = account.getMobileMoneyAccount();
+            // CORRECTION: Convertir phoneNumber en String si c'est un Integer
+            String mobileNumber = ma.getPhoneNumber() != null ? 
+                (ma.getPhoneNumber() instanceof Integer ? 
+                    String.valueOf(ma.getPhoneNumber()) : 
+                    ma.getPhoneNumber().toString()) : 
+                null;
+            
             return MobileBankingAccountResponse.builder()
                     .id(account.getId())
                     .amount(balance)
                     .holderName(ma.getHolderName())
                     .mobileBankingService(ma.getServiceName())
-                    .mobileNumber(ma.getPhoneNumber() != null ? ma.getPhoneNumber() : null)
+                    .mobileNumber(mobileNumber)
                     .build();
         }
 
@@ -137,13 +144,20 @@ public class Mapper {
 
         } else if (account.getMobileMoneyAccount() != null) {
             MobileMoneyAccount ma = account.getMobileMoneyAccount();
+            // CORRECTION: Convertir phoneNumber en String si c'est un Integer
+            String mobileNumber = ma.getPhoneNumber() != null ? 
+                (ma.getPhoneNumber() instanceof Integer ? 
+                    String.valueOf(ma.getPhoneNumber()) : 
+                    ma.getPhoneNumber().toString()) : 
+                null;
+            
             return MobileBankingAccountDetail.builder()
                     .id(account.getId())
                     .type("MOBILE_BANKING")
                     .amount(balance)
                     .holderName(ma.getHolderName())
                     .mobileBankingService(ma.getServiceName())
-                    .mobileNumber(ma.getPhoneNumber() != null ? ma.getPhoneNumber() : null)
+                    .mobileNumber(mobileNumber)
                     .build();
         }
 
